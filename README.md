@@ -7,12 +7,12 @@ A multi-language speech-to-text application that supports Portuguese, English, a
 
 ### Features
 
-- **Multi-Language Support**: Supports multiple variants of Portuguese, English, and Spanish
-  - English: US, UK
-  - Portuguese: Brazil, Portugal
-  - Spanish: Spain, Mexico, Argentina
+- **Automatic Language Detection**: No need to select language - the app automatically detects if you're speaking Portuguese, English, or Spanish
+  - Supported languages: English (US, UK), Portuguese (Brazil, Portugal), Spanish (Spain, Mexico, Argentina)
+  - Smart language switching when recognition fails
+  - Shows detected language in real-time
 
-- **Real-Time Transcription**: See your speech converted to text in real-time
+- **Real-Time Transcription**: See your speech converted to text in real-time with confidence indicators
 - **Continuous Recording**: Keeps recording until you stop it
 - **User-Friendly Interface**: Modern, responsive design that works on all devices
 - **Copy to Clipboard**: Easily copy transcribed text
@@ -21,12 +21,13 @@ A multi-language speech-to-text application that supports Portuguese, English, a
 ### How to Use
 
 1. Open `speech-to-text.html` in your web browser
-2. Select your preferred language from the dropdown
-3. Click "Start Recording" and allow microphone access
-4. Speak clearly into your microphone
-5. Click "Stop Recording" when finished
-6. Use "Copy Text" to copy the transcription to clipboard
-7. Use "Clear" to reset and start over
+2. Click "Start Recording" and allow microphone access
+3. Speak clearly in Portuguese, English, or Spanish
+4. Watch the app automatically detect your language
+5. See your speech transcribed in real-time
+6. Click "Stop Recording" when finished
+7. Use "Copy Text" to copy the transcription to clipboard
+8. Use "Clear" to reset and start over
 
 ### Browser Compatibility
 
