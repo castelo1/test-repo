@@ -359,12 +359,22 @@
 
         // Stop recording
         stopBtn.addEventListener('click', () => {
-            recognition.stop();
-            isRecording = false;
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            statusDiv.className = 'status idle';
-            statusDiv.textContent = '✓ Recording stopped';
+            try {
+                isRecording = false; // Set this BEFORE stopping to prevent restart
+                recognition.stop();
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                statusDiv.className = 'status idle';
+                statusDiv.textContent = '✓ Recording stopped';
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+                // Still update the UI even if stop fails
+                isRecording = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                statusDiv.className = 'status idle';
+                statusDiv.textContent = '✓ Recording stopped';
+            }
         });
 
         // Clear transcript
@@ -434,6 +444,12 @@
         // Handle errors
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
+
+            // Ignore 'aborted' errors - these happen when user stops recording
+            if (event.error === 'aborted') {
+                return;
+            }
+
             let errorMessage = '❌ Error: ';
 
             switch(event.error) {
