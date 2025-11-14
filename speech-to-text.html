@@ -235,38 +235,6 @@
             margin-right: 10px;
         }
 
-        .language-detector {
-            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .detected-lang {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .lang-label {
-            font-weight: 600;
-            color: #333;
-            font-size: 1em;
-        }
-
-        .lang-display {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #4a148c;
-            background: white;
-            padding: 10px 25px;
-            border-radius: 25px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            min-width: 200px;
-        }
-
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -289,16 +257,21 @@
 <body>
     <div class="container">
         <h1>🎤 Speech to Text</h1>
-        <p class="subtitle">Automatic Language Detection</p>
-
-        <div id="languageDetector" class="language-detector">
-            <div class="detected-lang">
-                <span class="lang-label">Detected Language:</span>
-                <span id="detectedLang" class="lang-display">Not detected yet</span>
-            </div>
-        </div>
+        <p class="subtitle">Multi-Language Voice Recognition</p>
 
         <div class="controls">
+            <div class="language-selector">
+                <label for="language">Select Language:</label>
+                <select id="language">
+                    <option value="en-US">🇺🇸 English (United States)</option>
+                    <option value="en-GB">🇬🇧 English (United Kingdom)</option>
+                    <option value="pt-BR">🇧🇷 Portuguese (Brazil)</option>
+                    <option value="pt-PT">🇵🇹 Portuguese (Portugal)</option>
+                    <option value="es-ES">🇪🇸 Spanish (Spain)</option>
+                    <option value="es-MX">🇲🇽 Spanish (Mexico)</option>
+                    <option value="es-AR">🇦🇷 Spanish (Argentina)</option>
+                </select>
+            </div>
 
             <div class="button-group">
                 <button id="startBtn" class="btn-start">▶ Start Recording</button>
@@ -317,13 +290,12 @@
         <div class="info">
             <h3>ℹ️ How to Use:</h3>
             <p>
-                1. Click "Start Recording" and allow microphone access<br>
-                2. The app will automatically detect if you're speaking Portuguese, English, or Spanish<br>
+                1. Select your preferred language from the dropdown<br>
+                2. Click "Start Recording" and allow microphone access<br>
                 3. Speak clearly into your microphone<br>
-                4. Watch the "Detected Language" indicator show your language<br>
-                5. Click "Stop Recording" when finished<br>
-                6. Use "Copy Text" to copy the transcription to clipboard<br>
-                7. Use "Clear" to reset and start over
+                4. Click "Stop Recording" when finished<br>
+                5. Use "Copy Text" to copy the transcription to clipboard<br>
+                6. Use "Clear" to reset and start over
             </p>
         </div>
     </div>
@@ -338,76 +310,46 @@
             document.getElementById('startBtn').disabled = true;
         }
 
-        // Language configurations with priority order
-        const languages = [
-            { code: 'pt-BR', name: '🇧🇷 Portuguese (Brazil)', short: 'Portuguese' },
-            { code: 'en-US', name: '🇺🇸 English (US)', short: 'English' },
-            { code: 'es-ES', name: '🇪🇸 Spanish (Spain)', short: 'Spanish' },
-            { code: 'pt-PT', name: '🇵🇹 Portuguese (Portugal)', short: 'Portuguese' },
-            { code: 'en-GB', name: '🇬🇧 English (UK)', short: 'English' },
-            { code: 'es-MX', name: '🇲🇽 Spanish (Mexico)', short: 'Spanish' },
-            { code: 'es-AR', name: '🇦🇷 Spanish (Argentina)', short: 'Spanish' }
-        ];
-
-        // Get browser language and find best match
-        function getBrowserLanguage() {
-            const browserLang = navigator.language || navigator.userLanguage;
-
-            // Try exact match first
-            let match = languages.find(lang => lang.code === browserLang);
-            if (match) return match.code;
-
-            // Try prefix match (e.g., 'pt' matches 'pt-BR')
-            const prefix = browserLang.split('-')[0];
-            match = languages.find(lang => lang.code.startsWith(prefix));
-            if (match) return match.code;
-
-            // Default to English
-            return 'en-US';
-        }
-
         // Initialize speech recognition
         const recognition = new SpeechRecognition();
         let isRecording = false;
-        let currentLangIndex = 0;
-        let detectedLanguage = getBrowserLanguage();
 
         // DOM elements
+        const languageSelect = document.getElementById('language');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const clearBtn = document.getElementById('clearBtn');
         const copyBtn = document.getElementById('copyBtn');
         const statusDiv = document.getElementById('status');
         const transcriptDiv = document.getElementById('transcript');
-        const detectedLangDiv = document.getElementById('detectedLang');
 
         // Configure recognition
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = detectedLanguage;
 
-        // Update detected language display
-        function updateDetectedLanguage(langCode) {
-            const lang = languages.find(l => l.code === langCode);
-            if (lang) {
-                detectedLangDiv.textContent = lang.name;
-                detectedLanguage = langCode;
+        // Set initial language
+        recognition.lang = languageSelect.value;
+
+        // Update language when changed
+        languageSelect.addEventListener('change', () => {
+            recognition.lang = languageSelect.value;
+            if (isRecording) {
+                recognition.stop();
+                setTimeout(() => {
+                    recognition.start();
+                }, 100);
             }
-        }
-
-        // Set initial detected language
-        updateDetectedLanguage(detectedLanguage);
+        });
 
         // Start recording
         startBtn.addEventListener('click', () => {
             try {
-                recognition.lang = detectedLanguage;
                 recognition.start();
                 isRecording = true;
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 statusDiv.className = 'status listening';
-                statusDiv.textContent = '🎙️ Listening... Speak now in any language!';
+                statusDiv.textContent = '🎙️ Listening... Speak now!';
             } catch (error) {
                 console.error('Error starting recognition:', error);
                 statusDiv.className = 'status error';
@@ -417,22 +359,12 @@
 
         // Stop recording
         stopBtn.addEventListener('click', () => {
-            try {
-                isRecording = false; // Set this BEFORE stopping to prevent restart
-                recognition.stop();
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                statusDiv.className = 'status idle';
-                statusDiv.textContent = '✓ Recording stopped';
-            } catch (error) {
-                console.error('Error stopping recognition:', error);
-                // Still update the UI even if stop fails
-                isRecording = false;
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                statusDiv.className = 'status idle';
-                statusDiv.textContent = '✓ Recording stopped';
-            }
+            recognition.stop();
+            isRecording = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusDiv.className = 'status idle';
+            statusDiv.textContent = '✓ Recording stopped';
         });
 
         // Clear transcript
@@ -474,29 +406,15 @@
             }
         });
 
-        // Language detection helpers
-        let noSpeechCount = 0;
-        let successfulRecognitions = 0;
-
         // Handle speech recognition results
         recognition.onresult = (event) => {
             let interimTranscript = '';
             let finalTranscript = '';
-            let maxConfidence = 0;
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
-                const result = event.results[i];
-                const transcript = result[0].transcript;
-                const confidence = result[0].confidence || 0;
-
-                if (confidence > maxConfidence) {
-                    maxConfidence = confidence;
-                }
-
-                if (result.isFinal) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
                     finalTranscript += transcript + ' ';
-                    successfulRecognitions++;
-                    noSpeechCount = 0; // Reset no-speech counter on success
                 } else {
                     interimTranscript += transcript;
                 }
@@ -505,13 +423,6 @@
             // Update transcript
             if (finalTranscript) {
                 transcriptDiv.textContent += finalTranscript;
-
-                // Update status with confidence indicator
-                const confPercent = Math.round(maxConfidence * 100);
-                if (confPercent > 0) {
-                    const lang = languages.find(l => l.code === detectedLanguage);
-                    statusDiv.textContent = `🎙️ Listening (${lang?.short || 'Detected'} - ${confPercent}% confident)`;
-                }
             }
 
             // Show interim results in status
@@ -520,81 +431,34 @@
             }
         };
 
-        // Try next language in automatic detection
-        function tryNextLanguage() {
-            if (!isRecording) return;
-
-            currentLangIndex = (currentLangIndex + 1) % languages.length;
-            const nextLang = languages[currentLangIndex];
-
-            detectedLanguage = nextLang.code;
-            updateDetectedLanguage(detectedLanguage);
-            recognition.lang = detectedLanguage;
-
-            statusDiv.textContent = `🔄 Trying ${nextLang.short}... Speak now!`;
-
-            try {
-                recognition.start();
-            } catch (error) {
-                console.error('Error switching language:', error);
-            }
-        }
-
         // Handle errors
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
-
-            // Ignore 'aborted' errors - these happen when user stops recording
-            if (event.error === 'aborted' && !isRecording) {
-                return;
-            }
-
             let errorMessage = '❌ Error: ';
-            let shouldRetry = false;
 
             switch(event.error) {
                 case 'no-speech':
-                    noSpeechCount++;
-                    // Try next language after 2 no-speech errors
-                    if (noSpeechCount >= 2 && isRecording) {
-                        shouldRetry = true;
-                        noSpeechCount = 0;
-                    } else if (isRecording) {
-                        errorMessage += 'No speech detected. Please speak clearly.';
-                    }
+                    errorMessage += 'No speech detected. Please try again.';
                     break;
                 case 'audio-capture':
                     errorMessage += 'No microphone found. Please check your microphone.';
-                    isRecording = false;
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
                     break;
                 case 'not-allowed':
                     errorMessage += 'Microphone permission denied. Please allow microphone access.';
-                    isRecording = false;
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
                     break;
                 case 'network':
                     errorMessage += 'Network error. Please check your connection.';
-                    shouldRetry = true;
                     break;
-                case 'aborted':
-                    // User manually stopped - not an error
-                    return;
                 default:
                     errorMessage += event.error;
             }
 
-            if (shouldRetry && isRecording) {
-                // Try next language automatically
-                setTimeout(() => {
-                    tryNextLanguage();
-                }, 500);
-            } else if (!isRecording) {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = errorMessage;
-            }
+            statusDiv.className = 'status error';
+            statusDiv.textContent = errorMessage;
+
+            isRecording = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
         };
 
         // Handle recognition end
