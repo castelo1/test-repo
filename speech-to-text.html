@@ -313,7 +313,6 @@
         // Initialize speech recognition
         const recognition = new SpeechRecognition();
         let isRecording = false;
-        let restartTimeout = null;
 
         // DOM elements
         const languageSelect = document.getElementById('language');
@@ -327,6 +326,7 @@
         // Configure recognition
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
 
         // Set initial language
         recognition.lang = languageSelect.value;
@@ -345,10 +345,6 @@
         // Start recording
         startBtn.addEventListener('click', () => {
             try {
-                if (restartTimeout) {
-                    clearTimeout(restartTimeout);
-                    restartTimeout = null;
-                }
                 recognition.start();
                 isRecording = true;
                 startBtn.disabled = true;
@@ -359,35 +355,25 @@
                 console.error('Error starting recognition:', error);
                 statusDiv.className = 'status error';
                 statusDiv.textContent = '❌ Error starting recognition. Please try again.';
+                isRecording = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
             }
         });
 
         // Stop recording
         stopBtn.addEventListener('click', () => {
+            isRecording = false; // Set this BEFORE stopping to prevent restart
             try {
-                isRecording = false; // Set this BEFORE stopping to prevent restart
-                if (restartTimeout) {
-                    clearTimeout(restartTimeout);
-                    restartTimeout = null;
-                }
                 recognition.stop();
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                statusDiv.className = 'status idle';
-                statusDiv.textContent = '✓ Recording stopped';
             } catch (error) {
                 console.error('Error stopping recognition:', error);
-                // Still update the UI even if stop fails
-                isRecording = false;
-                if (restartTimeout) {
-                    clearTimeout(restartTimeout);
-                    restartTimeout = null;
-                }
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                statusDiv.className = 'status idle';
-                statusDiv.textContent = '✓ Recording stopped';
             }
+            // Update UI regardless of whether stop succeeded
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusDiv.className = 'status idle';
+            statusDiv.textContent = '✓ Recording stopped';
         });
 
         // Clear transcript
@@ -467,8 +453,8 @@
 
             switch(event.error) {
                 case 'no-speech':
-                    errorMessage += 'No speech detected. Please try again.';
-                    break;
+                    // Don't show error for no-speech in continuous mode
+                    return;
                 case 'audio-capture':
                     errorMessage += 'No microphone found. Please check your microphone.';
                     break;
@@ -485,12 +471,6 @@
             statusDiv.className = 'status error';
             statusDiv.textContent = errorMessage;
 
-            // Clear any pending restart
-            if (restartTimeout) {
-                clearTimeout(restartTimeout);
-                restartTimeout = null;
-            }
-
             isRecording = false;
             startBtn.disabled = false;
             stopBtn.disabled = true;
@@ -498,24 +478,13 @@
 
         // Handle recognition end
         recognition.onend = () => {
+            // Only update UI if user hasn't manually stopped
             if (isRecording) {
-                // Restart if it was stopped unexpectedly, with a small delay to prevent loops
-                restartTimeout = setTimeout(() => {
-                    if (isRecording) {
-                        try {
-                            recognition.start();
-                            statusDiv.className = 'status listening';
-                            statusDiv.textContent = '🎙️ Listening... Speak now!';
-                        } catch (error) {
-                            console.error('Error restarting recognition:', error);
-                            isRecording = false;
-                            startBtn.disabled = false;
-                            stopBtn.disabled = true;
-                            statusDiv.className = 'status idle';
-                            statusDiv.textContent = 'Ready to start';
-                        }
-                    }
-                }, 300); // Wait 300ms before restarting to prevent rapid loops
+                isRecording = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                statusDiv.className = 'status idle';
+                statusDiv.textContent = '✓ Recording ended';
             }
         };
     </script>
