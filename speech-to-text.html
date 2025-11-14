@@ -313,6 +313,7 @@
         // Initialize speech recognition
         const recognition = new SpeechRecognition();
         let isRecording = false;
+        let restartTimeout = null;
 
         // DOM elements
         const languageSelect = document.getElementById('language');
@@ -344,6 +345,10 @@
         // Start recording
         startBtn.addEventListener('click', () => {
             try {
+                if (restartTimeout) {
+                    clearTimeout(restartTimeout);
+                    restartTimeout = null;
+                }
                 recognition.start();
                 isRecording = true;
                 startBtn.disabled = true;
@@ -361,6 +366,10 @@
         stopBtn.addEventListener('click', () => {
             try {
                 isRecording = false; // Set this BEFORE stopping to prevent restart
+                if (restartTimeout) {
+                    clearTimeout(restartTimeout);
+                    restartTimeout = null;
+                }
                 recognition.stop();
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
@@ -370,6 +379,10 @@
                 console.error('Error stopping recognition:', error);
                 // Still update the UI even if stop fails
                 isRecording = false;
+                if (restartTimeout) {
+                    clearTimeout(restartTimeout);
+                    restartTimeout = null;
+                }
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 statusDiv.className = 'status idle';
@@ -472,6 +485,12 @@
             statusDiv.className = 'status error';
             statusDiv.textContent = errorMessage;
 
+            // Clear any pending restart
+            if (restartTimeout) {
+                clearTimeout(restartTimeout);
+                restartTimeout = null;
+            }
+
             isRecording = false;
             startBtn.disabled = false;
             stopBtn.disabled = true;
@@ -480,17 +499,23 @@
         // Handle recognition end
         recognition.onend = () => {
             if (isRecording) {
-                // Restart if it was stopped unexpectedly
-                try {
-                    recognition.start();
-                } catch (error) {
-                    console.error('Error restarting recognition:', error);
-                    isRecording = false;
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    statusDiv.className = 'status idle';
-                    statusDiv.textContent = 'Ready to start';
-                }
+                // Restart if it was stopped unexpectedly, with a small delay to prevent loops
+                restartTimeout = setTimeout(() => {
+                    if (isRecording) {
+                        try {
+                            recognition.start();
+                            statusDiv.className = 'status listening';
+                            statusDiv.textContent = '🎙️ Listening... Speak now!';
+                        } catch (error) {
+                            console.error('Error restarting recognition:', error);
+                            isRecording = false;
+                            startBtn.disabled = false;
+                            stopBtn.disabled = true;
+                            statusDiv.className = 'status idle';
+                            statusDiv.textContent = 'Ready to start';
+                        }
+                    }
+                }, 300); // Wait 300ms before restarting to prevent rapid loops
             }
         };
     </script>
