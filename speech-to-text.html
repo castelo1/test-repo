@@ -426,13 +426,37 @@
             statusDiv.textContent = '🎙️ Listening... Speak now!';
         };
 
+        // Handle audio start (microphone is capturing audio)
+        recognition.onaudiostart = () => {
+            console.log('Audio capturing started');
+        };
+
+        // Handle sound start (sound detected)
+        recognition.onsoundstart = () => {
+            console.log('Sound detected');
+        };
+
+        // Handle speech start (speech detected)
+        recognition.onspeechstart = () => {
+            console.log('Speech detected!');
+            statusDiv.textContent = '🎙️ Speech detected - processing...';
+        };
+
+        // Handle speech end
+        recognition.onspeechend = () => {
+            console.log('Speech ended');
+        };
+
         // Handle speech recognition results
         recognition.onresult = (event) => {
+            console.log('Got result event:', event);
             let interimTranscript = '';
             let finalTranscript = '';
 
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
+                console.log(`Result ${i}: "${transcript}" (isFinal: ${event.results[i].isFinal})`);
+
                 if (event.results[i].isFinal) {
                     finalTranscript += transcript + ' ';
                 } else {
@@ -442,11 +466,14 @@
 
             // Update transcript
             if (finalTranscript) {
+                console.log('Adding final transcript:', finalTranscript);
                 transcriptDiv.textContent += finalTranscript;
+                statusDiv.textContent = '✅ Transcribed! Keep speaking...';
             }
 
             // Show interim results in status
             if (interimTranscript && isRecording) {
+                console.log('Showing interim:', interimTranscript);
                 statusDiv.textContent = '🎙️ ' + interimTranscript;
             }
         };
