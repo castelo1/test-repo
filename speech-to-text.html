@@ -313,6 +313,7 @@
         // Initialize speech recognition
         const recognition = new SpeechRecognition();
         let isRecording = false;
+        let recognitionStarted = false;
 
         // DOM elements
         const languageSelect = document.getElementById('language');
@@ -347,6 +348,7 @@
             try {
                 recognition.start();
                 isRecording = true;
+                recognitionStarted = true;
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
                 statusDiv.className = 'status listening';
@@ -356,6 +358,7 @@
                 statusDiv.className = 'status error';
                 statusDiv.textContent = '❌ Error starting recognition. Please try again.';
                 isRecording = false;
+                recognitionStarted = false;
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
             }
@@ -364,6 +367,7 @@
         // Stop recording
         stopBtn.addEventListener('click', () => {
             isRecording = false; // Set this BEFORE stopping to prevent restart
+            recognitionStarted = false;
             try {
                 recognition.stop();
             } catch (error) {
@@ -415,6 +419,13 @@
             }
         });
 
+        // Handle recognition start
+        recognition.onstart = () => {
+            console.log('Recognition started successfully');
+            statusDiv.className = 'status listening';
+            statusDiv.textContent = '🎙️ Listening... Speak now!';
+        };
+
         // Handle speech recognition results
         recognition.onresult = (event) => {
             let interimTranscript = '';
@@ -453,7 +464,7 @@
 
             switch(event.error) {
                 case 'no-speech':
-                    // Don't show error for no-speech in continuous mode
+                    // Don't show error for no-speech in continuous mode, just let it restart
                     return;
                 case 'audio-capture':
                     errorMessage += 'No microphone found. Please check your microphone.';
@@ -472,15 +483,39 @@
             statusDiv.textContent = errorMessage;
 
             isRecording = false;
+            recognitionStarted = false;
             startBtn.disabled = false;
             stopBtn.disabled = true;
         };
 
         // Handle recognition end
         recognition.onend = () => {
-            // Only update UI if user hasn't manually stopped
-            if (isRecording) {
+            console.log('Recognition ended. isRecording:', isRecording, 'recognitionStarted:', recognitionStarted);
+
+            // If user is still recording, restart after a short delay
+            if (isRecording && recognitionStarted) {
+                setTimeout(() => {
+                    // Double-check user still wants to record
+                    if (isRecording && recognitionStarted) {
+                        try {
+                            recognition.start();
+                            console.log('Recognition restarted');
+                        } catch (error) {
+                            console.error('Error restarting recognition:', error);
+                            // If restart fails, stop recording
+                            isRecording = false;
+                            recognitionStarted = false;
+                            startBtn.disabled = false;
+                            stopBtn.disabled = true;
+                            statusDiv.className = 'status idle';
+                            statusDiv.textContent = '✓ Recording ended';
+                        }
+                    }
+                }, 1000); // Wait 1 second before restarting
+            } else {
+                // User stopped manually or something went wrong
                 isRecording = false;
+                recognitionStarted = false;
                 startBtn.disabled = false;
                 stopBtn.disabled = true;
                 statusDiv.className = 'status idle';
